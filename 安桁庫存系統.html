@@ -641,17 +641,7 @@ function initFirebaseAuth() {
         document.getElementById('loginLoading').textContent = '登入中…';
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
-        auth.signInWithPopup(provider)
-          .then(function(result) { enterSystem(result.user); })
-          .catch(function(err) {
-            if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-              document.getElementById('loginLoading').textContent = '跳轉中…';
-              auth.signInWithRedirect(provider);
-            } else {
-              document.getElementById('loginErr').textContent = '登入失敗：' + err.message;
-              document.getElementById('loginLoading').textContent = '';
-            }
-          });
+        auth.signInWithRedirect(provider);
       });
 
       auth.getRedirectResult().then(function(result) {
