@@ -15,13 +15,10 @@
 .login-box{background:#f5f0e8;border-radius:8px;padding:40px 48px;text-align:center;width:340px;box-shadow:0 20px 60px rgba(0,0,0,0.4);}
 .login-box .logo{font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.2em;text-transform:uppercase;color:#8b5e3c;margin-bottom:6px;}
 .login-box h2{font-family:'DM Serif Display',serif;font-size:1.6rem;color:#2a2118;margin-bottom:24px;}
-.login-box input{width:100%;padding:11px 14px;border:1.5px solid #c8b89a;border-radius:4px;font-family:'DM Mono',monospace;font-size:1rem;text-align:center;letter-spacing:0.12em;background:#faf7f2;color:#2a2118;outline:none;transition:border-color 0.15s;}
-.login-box input:focus{border-color:#8b5e3c;}
-.login-box input.error{border-color:#c0392b;animation:shake 0.3s;}
-@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
-.login-box button{margin-top:14px;width:100%;padding:11px;background:#8b5e3c;color:#fff;border:none;border-radius:4px;font-family:'DM Mono',monospace;font-size:0.78rem;letter-spacing:0.12em;text-transform:uppercase;cursor:pointer;transition:background 0.15s;}
-.login-box button:hover{background:#7a5234;}
+.google-btn{width:100%;padding:11px;margin-top:8px;background:#fff;color:#2a2118;border:1.5px solid #c8b89a;border-radius:4px;font-family:'DM Mono',monospace;font-size:0.78rem;letter-spacing:0.08em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:background 0.15s;}
+.google-btn:hover{background:#f5f0e8;border-color:#8b5e3c;}
 .login-box .err-msg{margin-top:10px;font-size:0.75rem;color:#c0392b;font-family:'DM Mono',monospace;min-height:18px;}
+.login-box .loading-msg{font-family:'DM Mono',monospace;font-size:0.72rem;color:#8b5e3c;margin-top:8px;min-height:18px;}
 
 :root{--bg:#f5f0e8;--bg2:#ede8dc;--panel:#faf7f2;--border:#c8b89a;--border-light:#ddd4c0;--accent:#8b5e3c;--accent2:#c4864e;--text:#2a2118;--text-muted:#7a6a55;--red:#c0392b;--green:#27715a;--yellow:#b8860b;--tag-bg:#e8dcc8;}
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -66,12 +63,10 @@ tbody td{padding:7px 12px;vertical-align:middle;}
 .note-cell input:hover{border-color:var(--border);background:var(--bg);}
 .note-cell input:focus{outline:none;border-color:var(--accent);background:#fff;}
 .brand-group-row td{background:var(--tag-bg);font-family:'DM Mono',monospace;font-size:0.7rem;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);padding:7px 14px;border-top:2px solid var(--border);}
-/* 不追蹤核取方塊 */
 .ignore-cell{text-align:center;width:36px;}
 .ignore-cell input[type=checkbox]{width:15px;height:15px;cursor:pointer;accent-color:var(--accent);}
 .ignored-row{opacity:0.45;}
 .ignored-row .name-cell::after{content:' ·不追蹤';font-size:0.65rem;color:var(--text-muted);font-family:'DM Mono',monospace;font-weight:400;}
-/* 色料不追蹤按鈕 */
 .pig-ignore{font-size:0.6rem;font-family:'DM Mono',monospace;cursor:pointer;color:var(--text-muted);background:none;border:1px solid var(--border-light);border-radius:2px;padding:1px 4px;margin-left:3px;vertical-align:middle;}
 .pig-ignore.active{color:var(--accent);border-color:var(--accent);background:var(--tag-bg);}
 .status-badge{display:inline-block;font-family:'DM Mono',monospace;font-size:0.63rem;font-weight:600;padding:2px 7px;border-radius:2px;white-space:nowrap;}
@@ -116,16 +111,20 @@ footer{margin-top:36px;padding:18px 32px;border-top:1px solid var(--border-light
 </head>
 <body>
 
-<!-- 密碼登入畫面 -->
+<!-- Google 登入畫面 -->
 <div id="loginScreen">
   <div class="login-box">
     <div class="logo">Giorgio Graesan · 安桁</div>
     <h2>庫存管理系統</h2>
-    <input type="password" id="pwInput" placeholder="輸入密碼" maxlength="30">
-    <button id="pwBtn">進入</button>
-    <div class="err-msg" id="errMsg"></div>
+    <button class="google-btn" id="googleLoginBtn">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px;">
+      使用 Google 帳號登入
+    </button>
+    <div class="err-msg" id="loginErr"></div>
+    <div class="loading-msg" id="loginLoading"></div>
   </div>
 </div>
+
 <header>
   <div>
     <div class="subtitle">Giorgio Graesan · 安桁</div>
@@ -241,7 +240,6 @@ const API_URL = 'https://script.google.com/macros/s/AKfycbzTyPzQqqOqHlNIm-l6S3fL
 const LS_KEY = 'anHengInventory_v5';
 const POLL_MS = 20000;
 
-// ── DEFAULT DATA ──────────────────────────────────────
 const defaultData = {
   orderItems:[
     {brand:'GG',name:'Gioia',big:5,small:5,order:'',note:''},{brand:'GG',name:'Minimal',big:2,small:3,order:'',note:''},{brand:'GG',name:'Filideseta',big:10,small:5,order:'',note:''},{brand:'GG',name:'White paint',big:0,small:3,order:'',note:''},{brand:'GG',name:'Via lattes',big:7,small:5,order:'',note:''},{brand:'GG',name:'Sogni',big:8,small:1,order:'',note:''},{brand:'GG',name:'Primos sabbia',big:29,small:6,order:'',note:''},{brand:'GG',name:'Istinto',big:0,small:1,order:'',note:''},{brand:'GG',name:'Istinto 24kg',big:18,small:1,order:'',note:''},{brand:'GG',name:'Marmorino /8kg',big:0,small:0,order:'',note:''},{brand:'GG',name:'Marmorino /24kg',big:30,small:1,order:'',note:''},{brand:'GG',name:'Stuhhi',big:11,small:3,order:'',note:''},{brand:'GG',name:'Munro',big:22,small:3,order:'',note:''},{brand:'GG',name:'Primos nature',big:21,small:3,order:'',note:''},{brand:'GG',name:'Vetro Lucio',big:0,small:'2.6罐',order:'',note:''},{brand:'GG',name:'Cera',big:3,small:2,order:'',note:''},{brand:'GG',name:'Opaco',big:0,small:1,order:'',note:''},{brand:'GG',name:'Satinato',big:0,small:1,order:'',note:''},{brand:'GG',name:'Oro ricco',big:2,small:1,order:'',note:''},{brand:'GG',name:'Argento',big:'',small:'2.4',order:'',note:''},{brand:'GG',name:'Ventventi 0.5',big:56,small:5,order:'',note:''},{brand:'GG',name:'Ventventi 0.7',big:48,small:5,order:'',note:''},{brand:'GG',name:'Calchera San Giorgio',big:33,small:2,order:'',note:''},{brand:'GG',name:'Euphoria',big:5,small:1,order:'',note:''},{brand:'GG',name:'Natural beeswax',big:9,small:4,order:'',note:''},{brand:'GG',name:'Beeswax metallic gold',big:5,small:'',order:'',note:''},{brand:'GG',name:'Pearl cream gold',big:8,small:'',order:'',note:''},
@@ -275,33 +273,21 @@ let data = JSON.parse(JSON.stringify(defaultData));
 function saveLocal(){localStorage.setItem(LS_KEY,JSON.stringify(data));}
 function getEditor(){return document.getElementById('editorName').value.trim()||'匿名';}
 
-// ── SYNC UI ──────────────────────────────────────────
 function setSyncStatus(state,msg,time){
   document.getElementById('syncDot').className='sync-dot '+state;
   document.getElementById('syncStatus').textContent=msg;
   if(time) document.getElementById('syncTime').textContent='上次同步：'+time;
 }
 
-// ── JSONP cloud GET ───────────────────────────────────
 function cloudGet(){
   setSyncStatus('syncing','同步中…');
   return new Promise(function(resolve){
     var cbName='_gs'+Date.now();
-    var timer=setTimeout(function(){
-      delete window[cbName];
-      setSyncStatus('error','連線逾時');
-      resolve(null);
-    },15000);
+    var timer=setTimeout(function(){delete window[cbName];setSyncStatus('error','連線逾時');resolve(null);},15000);
     window[cbName]=function(resp){
-      clearTimeout(timer);
-      delete window[cbName];
-      if(resp&&resp.ok){
-        setSyncStatus('ok','已同步',new Date().toLocaleTimeString('zh-TW'));
-        resolve(resp.data||{});
-      } else {
-        setSyncStatus('error',(resp&&resp.error)||'回應錯誤');
-        resolve(null);
-      }
+      clearTimeout(timer);delete window[cbName];
+      if(resp&&resp.ok){setSyncStatus('ok','已同步',new Date().toLocaleTimeString('zh-TW'));resolve(resp.data||{});}
+      else{setSyncStatus('error',(resp&&resp.error)||'回應錯誤');resolve(null);}
     };
     var s=document.createElement('script');
     s.src=API_URL+'?action=getData&callback='+cbName+'&t='+Date.now();
@@ -310,7 +296,6 @@ function cloudGet(){
   });
 }
 
-// ── cloud POST ────────────────────────────────────────
 function cloudSave(key,value,label,oldVal){
   fetch(API_URL,{method:'POST',body:JSON.stringify({action:'saveData',key:key,value:value,editor:getEditor(),fieldLabel:label,oldValue:oldVal})}).catch(function(){});
 }
@@ -321,55 +306,39 @@ function cloudSaveAll(){
     .catch(function(){setSyncStatus('error','上傳失敗');});
 }
 
-// ── merge cloud data ──────────────────────────────────
 var lastLocalEdit = 0;
-
 function mergeCloud(cd){
   if(!cd) return false;
   if(Date.now() - lastLocalEdit < 120000) return false;
   var keys=['orderItems','bigPigments','smallPigments','bigToolsGG','bigToolsSI','smallToolsGG','smallToolsSI','panels','catalogs','pigIgnore'];
   var changed=false;
   keys.forEach(function(k){
-    if(cd[k]!==undefined&&JSON.stringify(cd[k])!==JSON.stringify(data[k])){
-      data[k]=cd[k]; changed=true;
-    }
+    if(cd[k]!==undefined&&JSON.stringify(cd[k])!==JSON.stringify(data[k])){data[k]=cd[k];changed=true;}
   });
   return changed;
 }
 
-// ── poll ─────────────────────────────────────────────
 function pollCloud(){
   cloudGet().then(function(cd){
-    if(cd&&Object.keys(cd).length>0){
-      var changed=mergeCloud(cd);
-      if(changed){saveLocal();renderAll();}
-    }
+    if(cd&&Object.keys(cd).length>0){var changed=mergeCloud(cd);if(changed){saveLocal();renderAll();}}
   });
 }
 
-// ── INPUT HELPERS ─────────────────────────────────────
 function numInput(val,onChange){
   var inp=document.createElement('input');
-  inp.type='text'; inp.value=val||'';
+  inp.type='text';inp.value=val||'';
   var old=val||'';
   inp.addEventListener('focus',function(){old=inp.value;});
-  inp.addEventListener('change',function(){
-    lastLocalEdit=Date.now(); // 記錄本地編輯時間
-    onChange(inp.value,old); old=inp.value; saveLocal();
-  });
+  inp.addEventListener('change',function(){lastLocalEdit=Date.now();onChange(inp.value,old);old=inp.value;saveLocal();});
   return inp;
 }
 function textInput(val,onChange){
   var inp=document.createElement('input');
-  inp.type='text'; inp.value=val||''; inp.placeholder='備註…';
-  inp.addEventListener('change',function(){
-    lastLocalEdit=Date.now();
-    onChange(inp.value);saveLocal();
-  });
+  inp.type='text';inp.value=val||'';inp.placeholder='備註…';
+  inp.addEventListener('change',function(){lastLocalEdit=Date.now();onChange(inp.value);saveLocal();});
   return inp;
 }
 
-// ── STATUS BADGE ──────────────────────────────────────
 function makeBadge(val){
   var n=parseFloat(val);
   if(isNaN(n)||val==='') return document.createTextNode('');
@@ -380,7 +349,6 @@ function makeBadge(val){
   return span;
 }
 
-// ── PRODUCTS ──────────────────────────────────────────
 var BRANDS={GG:'Giorgio Graesan',SI:'Stucco Italiano'};
 function sortedItems(){
   return data.orderItems.filter(function(i){return (i.brand||'GG')==='GG';})
@@ -391,180 +359,121 @@ function buildProductRows(tbody,items){
   var lastBrand=null;
   items.forEach(function(item){
     var brand=item.brand||'GG';
-    if(brand!==lastBrand){
-      lastBrand=brand;
-      var gtr=document.createElement('tr'); gtr.className='brand-group-row';
-      var gtd=document.createElement('td'); gtd.colSpan=7; gtd.textContent=BRANDS[brand]||brand;
-      gtr.appendChild(gtd); tbody.appendChild(gtr);
-    }
+    if(brand!==lastBrand){lastBrand=brand;var gtr=document.createElement('tr');gtr.className='brand-group-row';var gtd=document.createElement('td');gtd.colSpan=7;gtd.textContent=BRANDS[brand]||brand;gtr.appendChild(gtd);tbody.appendChild(gtr);}
     var tr=document.createElement('tr');
     if(item.ignore) tr.classList.add('ignored-row');
     var bn=parseFloat(item.big);
     if(!item.ignore&&!isNaN(bn)&&bn<5) tr.style.background=bn===0?'rgba(192,57,43,0.05)':'rgba(184,134,11,0.04)';
-
-    var tdN=document.createElement('td'); tdN.className='name-cell'; tdN.textContent=item.name; tr.appendChild(tdN);
-
-    var tdB=document.createElement('td'); tdB.className='num-cell';
+    var tdN=document.createElement('td');tdN.className='name-cell';tdN.textContent=item.name;tr.appendChild(tdN);
+    var tdB=document.createElement('td');tdB.className='num-cell';
     var inB=numInput(item.big,function(v,ov){item.big=v;cloudSave('orderItems',data.orderItems,item.name+' 大倉',ov);renderLowStock();});
     if(!item.ignore&&!isNaN(bn)&&bn<5) inB.style.color=bn===0?'var(--red)':'var(--yellow)';
-    tdB.appendChild(inB); tr.appendChild(tdB);
-
-    var tdS=document.createElement('td'); tdS.className='num-cell';
+    tdB.appendChild(inB);tr.appendChild(tdB);
+    var tdS=document.createElement('td');tdS.className='num-cell';
     tdS.appendChild(numInput(item.small,function(v,ov){item.small=v;cloudSave('orderItems',data.orderItems,item.name+' 小倉',ov);}));
     tr.appendChild(tdS);
-
-    var tdO=document.createElement('td'); tdO.className='num-cell';
+    var tdO=document.createElement('td');tdO.className='num-cell';
     if(item.order===undefined) item.order='';
     var inO=numInput(item.order,function(v,ov){item.order=v;cloudSave('orderItems',data.orderItems,item.name+' 叫貨數',ov);});
     if(!item.ignore&&item.order&&parseFloat(item.order)>0){inO.style.color='var(--yellow)';inO.style.fontWeight='600';tr.style.background='rgba(184,134,11,0.06)';}
-    tdO.appendChild(inO); tr.appendChild(tdO);
-
-    var tdSt=document.createElement('td'); tdSt.appendChild(item.ignore?document.createTextNode(''):makeBadge(item.big)); tr.appendChild(tdSt);
-
-    var tdNt=document.createElement('td'); tdNt.className='note-cell';
+    tdO.appendChild(inO);tr.appendChild(tdO);
+    var tdSt=document.createElement('td');tdSt.appendChild(item.ignore?document.createTextNode(''):makeBadge(item.big));tr.appendChild(tdSt);
+    var tdNt=document.createElement('td');tdNt.className='note-cell';
     tdNt.appendChild(textInput(item.note,function(v){item.note=v;cloudSave('orderItems',data.orderItems,item.name+' 備註','');}));
     tr.appendChild(tdNt);
-
-    // 🔕 不追蹤核取方塊
-    var tdI=document.createElement('td'); tdI.className='ignore-cell';
-    var cb=document.createElement('input'); cb.type='checkbox'; cb.checked=!!item.ignore;
-    cb.title='勾選後不顯示在警示';
+    var tdI=document.createElement('td');tdI.className='ignore-cell';
+    var cb=document.createElement('input');cb.type='checkbox';cb.checked=!!item.ignore;cb.title='勾選後不顯示在警示';
     cb.addEventListener('change',function(){
       item.ignore=cb.checked;
       if(cb.checked){tr.classList.add('ignored-row');tr.style.background='';}
       else{tr.classList.remove('ignored-row');}
-      cloudSave('orderItems',data.orderItems,item.name+' 不追蹤',!cb.checked);
-      renderLowStock();
+      cloudSave('orderItems',data.orderItems,item.name+' 不追蹤',!cb.checked);renderLowStock();
     });
-    tdI.appendChild(cb); tr.appendChild(tdI);
+    tdI.appendChild(cb);tr.appendChild(tdI);
     tbody.appendChild(tr);
   });
 }
 function renderOverview(){var t=document.querySelector('#overviewTable tbody');if(t) buildProductRows(t,sortedItems());}
 function renderAllProductsTable(){var t=document.querySelector('#allProductsTable tbody');if(t) buildProductRows(t,sortedItems());}
 
-// ── LOW STOCK ─────────────────────────────────────────
-function makeAlertBox(id,title,alerts,threshold){
-  var c=document.getElementById(id); c.innerHTML='';
-  if(alerts.length===0){
-    var d=document.createElement('div'); d.className='no-alert';
-    d.innerHTML='<strong>'+title+'</strong><br>✓ 庫存正常';
-    c.appendChild(d); return;
-  }
-  var box=document.createElement('div'); box.className='alert-box';
-  var hd=document.createElement('div'); hd.className='alert-box-title';
-  hd.innerHTML='⚠ '+title+' <span class="count-badge">'+alerts.length+'</span>';
-  box.appendChild(hd);
-  var list=document.createElement('div'); list.className='alert-items';
-  alerts.forEach(function(a){
-    var chip=document.createElement('div'); chip.className='alert-item';
-    chip.innerHTML='<span class="ai-section">'+a.section+'</span><span class="ai-name">'+a.name+'</span><span class="ai-qty">'+(a.qty===0||a.qty==='0'?'缺貨':String(a.qty))+'</span>';
-    list.appendChild(chip);
-  });
-  box.appendChild(list); c.appendChild(box);
+function makeAlertBox(id,title,alerts){
+  var c=document.getElementById(id);c.innerHTML='';
+  if(alerts.length===0){var d=document.createElement('div');d.className='no-alert';d.innerHTML='<strong>'+title+'</strong><br>✓ 庫存正常';c.appendChild(d);return;}
+  var box=document.createElement('div');box.className='alert-box';
+  var hd=document.createElement('div');hd.className='alert-box-title';hd.innerHTML='⚠ '+title+' <span class="count-badge">'+alerts.length+'</span>';box.appendChild(hd);
+  var list=document.createElement('div');list.className='alert-items';
+  alerts.forEach(function(a){var chip=document.createElement('div');chip.className='alert-item';chip.innerHTML='<span class="ai-section">'+a.section+'</span><span class="ai-name">'+a.name+'</span><span class="ai-qty">'+(a.qty===0||a.qty==='0'?'缺貨':String(a.qty))+'</span>';list.appendChild(chip);});
+  box.appendChild(list);c.appendChild(box);
 }
 function renderLowStock(){
-  var LOW=5;
-  var pa=[];
-  data.orderItems.forEach(function(i){
-    if(i.ignore) return;
-    var n=parseFloat(i.big);
-    if(!isNaN(n)&&n<LOW) pa.push({name:i.name,qty:i.big,section:i.brand==='SI'?'Stucco':'GG'});
-  });
-  makeAlertBox('lowStockPaint','藝術塗料警示',pa,LOW);
-
+  var LOW=5;var pa=[];
+  data.orderItems.forEach(function(i){if(i.ignore) return;var n=parseFloat(i.big);if(!isNaN(n)&&n<LOW) pa.push({name:i.name,qty:i.big,section:i.brand==='SI'?'Stucco':'GG'});});
+  makeAlertBox('lowStockPaint','藝術塗料警示',pa);
   if(!data.pigIgnore) data.pigIgnore={};
   var pia=[];
   function scanPig(rows,label,containerPrefix){
     rows.forEach(function(row){
       var ignoreKey=containerPrefix+'_'+row.group;
       var ig=data.pigIgnore[ignoreKey]||{big:[],small:[]};
-      if(row.big) row.codes.forEach(function(c,ci){
-        if(ig.big[ci]) return;
-        if(parseFloat(row.big[ci])===0) pia.push({name:c,qty:0,section:label+'大罐'});
-      });
-      row.codes.forEach(function(c,ci){
-        if(ig.small[ci]) return;
-        if(parseFloat(row.small[ci])===0) pia.push({name:c,qty:0,section:label+'小罐'});
-      });
+      if(row.big) row.codes.forEach(function(c,ci){if(ig.big[ci]) return;if(parseFloat(row.big[ci])===0) pia.push({name:c,qty:0,section:label+'大罐'});});
+      row.codes.forEach(function(c,ci){if(ig.small[ci]) return;if(parseFloat(row.small[ci])===0) pia.push({name:c,qty:0,section:label+'小罐'});});
     });
   }
   scanPig(data.bigPigments.rows,'大倉','bigPigmentTables');
   scanPig(data.smallPigments.rows,'小倉','smallPigmentTables');
-  makeAlertBox('lowStockPigment','色料缺貨警示',pia,1);
+  makeAlertBox('lowStockPigment','色料缺貨警示',pia);
 }
 
-// ── PIGMENTS ──────────────────────────────────────────
 function renderPigmentSection(containerId,pigData){
-  var container=document.getElementById(containerId); container.innerHTML='';
+  var container=document.getElementById(containerId);container.innerHTML='';
   pigData.rows.forEach(function(row){
-    var card=document.createElement('div'); card.className='table-card'; card.style.marginBottom='14px';
-    var hdr=document.createElement('div'); hdr.className='table-card-header'; hdr.textContent='系列 '+row.group; card.appendChild(hdr);
-    var tbl=document.createElement('table'); tbl.className='color-grid-table'; tbl.style.width='100%';
-    var thead=document.createElement('thead'); var hr=document.createElement('tr');
-    var th0=document.createElement('th'); th0.style.cssText='background:var(--bg2);border:1px solid var(--border-light);padding:5px 8px;font-size:0.63rem;'; hr.appendChild(th0);
+    var card=document.createElement('div');card.className='table-card';card.style.marginBottom='14px';
+    var hdr=document.createElement('div');hdr.className='table-card-header';hdr.textContent='系列 '+row.group;card.appendChild(hdr);
+    var tbl=document.createElement('table');tbl.className='color-grid-table';tbl.style.width='100%';
+    var thead=document.createElement('thead');var hr=document.createElement('tr');
+    var th0=document.createElement('th');th0.style.cssText='background:var(--bg2);border:1px solid var(--border-light);padding:5px 8px;font-size:0.63rem;';hr.appendChild(th0);
     row.codes.forEach(function(code){var th=document.createElement('th');th.className='color-code';th.textContent=code;th.style.padding='5px 7px';hr.appendChild(th);});
-    thead.appendChild(hr); tbl.appendChild(thead);
+    thead.appendChild(hr);tbl.appendChild(thead);
     var tbody=document.createElement('tbody');
-
-    // 從獨立的 pigIgnore 物件讀取 ignore 狀態
-    var ignoreKey = containerId + '_' + row.group;
+    var ignoreKey=containerId+'_'+row.group;
     if(!data.pigIgnore) data.pigIgnore={};
     if(!data.pigIgnore[ignoreKey]) data.pigIgnore[ignoreKey]={big:[],small:[]};
-    var ignoreState = data.pigIgnore[ignoreKey];
-
+    var ignoreState=data.pigIgnore[ignoreKey];
     if(row.big){
-      var tr=document.createElement('tr');
-      var td0=document.createElement('td');td0.className='row-label';td0.textContent='大罐';tr.appendChild(td0);
+      var tr=document.createElement('tr');var td0=document.createElement('td');td0.className='row-label';td0.textContent='大罐';tr.appendChild(td0);
       row.big.forEach(function(val,ci){
         var td=document.createElement('td');td.className='num-cell';td.style.border='1px solid var(--border-light)';
-        var wrap=document.createElement('div');wrap.style.display='flex';wrap.style.alignItems='center';wrap.style.justifyContent='center';wrap.style.gap='2px';
+        var wrap=document.createElement('div');wrap.style.cssText='display:flex;align-items:center;justify-content:center;gap:2px;';
         var inp=numInput(val,function(v,ov){row.big[ci]=v;cloudSave(containerId==='bigPigmentTables'?'bigPigments':'smallPigments',containerId==='bigPigmentTables'?data.bigPigments:data.smallPigments,'色料 '+row.group+' 大罐 '+row.codes[ci],ov);renderLowStock();});
-        if(!ignoreState.big[ci]) { if(parseFloat(val)===0) inp.style.color='var(--red)'; }
+        if(!ignoreState.big[ci]){if(parseFloat(val)===0) inp.style.color='var(--red)';}
         wrap.appendChild(inp);
         var ib=document.createElement('button');ib.className='pig-ignore';ib.title='不追蹤';ib.textContent='🔕';
         if(ignoreState.big[ci]) ib.classList.add('active');
-        ib.addEventListener('click',function(){
-          ignoreState.big[ci]=!ignoreState.big[ci];
-          ib.classList.toggle('active',ignoreState.big[ci]);
-          inp.style.color=ignoreState.big[ci]?'var(--text-muted)':(parseFloat(row.big[ci])===0?'var(--red)':'');
-          cloudSave('pigIgnore',data.pigIgnore,'色料不追蹤 '+row.group+' 大罐 '+row.codes[ci],'');
-          renderLowStock();
-        });
-        wrap.appendChild(ib);
-        td.appendChild(wrap);tr.appendChild(td);
+        ib.addEventListener('click',function(){ignoreState.big[ci]=!ignoreState.big[ci];ib.classList.toggle('active',ignoreState.big[ci]);inp.style.color=ignoreState.big[ci]?'var(--text-muted)':(parseFloat(row.big[ci])===0?'var(--red)':'');cloudSave('pigIgnore',data.pigIgnore,'色料不追蹤 '+row.group+' 大罐 '+row.codes[ci],'');renderLowStock();});
+        wrap.appendChild(ib);td.appendChild(wrap);tr.appendChild(td);
       });
       tbody.appendChild(tr);
     }
-    var tr2=document.createElement('tr');
-    var td00=document.createElement('td');td00.className='row-label';td00.textContent='小罐';tr2.appendChild(td00);
+    var tr2=document.createElement('tr');var td00=document.createElement('td');td00.className='row-label';td00.textContent='小罐';tr2.appendChild(td00);
     row.small.forEach(function(val,ci){
       var td=document.createElement('td');td.className='num-cell';td.style.border='1px solid var(--border-light)';
-      var wrap=document.createElement('div');wrap.style.display='flex';wrap.style.alignItems='center';wrap.style.justifyContent='center';wrap.style.gap='2px';
+      var wrap=document.createElement('div');wrap.style.cssText='display:flex;align-items:center;justify-content:center;gap:2px;';
       var inp=numInput(val,function(v,ov){row.small[ci]=v;cloudSave(containerId==='bigPigmentTables'?'bigPigments':'smallPigments',containerId==='bigPigmentTables'?data.bigPigments:data.smallPigments,'色料 '+row.group+' 小罐 '+row.codes[ci],ov);renderLowStock();});
-      if(!ignoreState.small[ci]) { if(parseFloat(val)===0) inp.style.color='var(--red)'; }
+      if(!ignoreState.small[ci]){if(parseFloat(val)===0) inp.style.color='var(--red)';}
       wrap.appendChild(inp);
       var ib=document.createElement('button');ib.className='pig-ignore';ib.title='不追蹤';ib.textContent='🔕';
       if(ignoreState.small[ci]) ib.classList.add('active');
-      ib.addEventListener('click',function(){
-        ignoreState.small[ci]=!ignoreState.small[ci];
-        ib.classList.toggle('active',ignoreState.small[ci]);
-        inp.style.color=ignoreState.small[ci]?'var(--text-muted)':(parseFloat(row.small[ci])===0?'var(--red)':'');
-        cloudSave('pigIgnore',data.pigIgnore,'色料不追蹤 '+row.group+' 小罐 '+row.codes[ci],'');
-        renderLowStock();
-      });
-      wrap.appendChild(ib);
-      td.appendChild(wrap);tr2.appendChild(td);
+      ib.addEventListener('click',function(){ignoreState.small[ci]=!ignoreState.small[ci];ib.classList.toggle('active',ignoreState.small[ci]);inp.style.color=ignoreState.small[ci]?'var(--text-muted)':(parseFloat(row.small[ci])===0?'var(--red)':'');cloudSave('pigIgnore',data.pigIgnore,'色料不追蹤 '+row.group+' 小罐 '+row.codes[ci],'');renderLowStock();});
+      wrap.appendChild(ib);td.appendChild(wrap);tr2.appendChild(td);
     });
-    tbody.appendChild(tr2); tbl.appendChild(tbody); card.appendChild(tbl); container.appendChild(card);
+    tbody.appendChild(tr2);tbl.appendChild(tbody);card.appendChild(tbl);container.appendChild(card);
   });
 }
 
-// ── TOOLS ─────────────────────────────────────────────
 function renderToolsTable(containerId,tools,cloudKey){
-  var c=document.getElementById(containerId); c.innerHTML='';
+  var c=document.getElementById(containerId);c.innerHTML='';
   var tbl=document.createElement('table');
-  var thead=document.createElement('thead'); thead.innerHTML='<tr><th>工具名稱</th><th class="num-cell">數量</th><th>備註</th></tr>'; tbl.appendChild(thead);
+  var thead=document.createElement('thead');thead.innerHTML='<tr><th>工具名稱</th><th class="num-cell">數量</th><th>備註</th></tr>';tbl.appendChild(thead);
   var tbody=document.createElement('tbody');
   tools.forEach(function(tool){
     var tr=document.createElement('tr');
@@ -572,16 +481,13 @@ function renderToolsTable(containerId,tools,cloudKey){
     var tdQ=document.createElement('td');tdQ.className='num-cell';
     tdQ.appendChild(numInput(tool.qty,function(v,ov){tool.qty=v;cloudSave(cloudKey,data[cloudKey],'工具 '+tool.name,ov);}));
     tr.appendChild(tdQ);
-    var tdNt=document.createElement('td');tdNt.className='note-cell';
-    tdNt.appendChild(textInput(tool.note,function(v){tool.note=v;}));
-    tr.appendChild(tdNt); tbody.appendChild(tr);
+    var tdNt=document.createElement('td');tdNt.className='note-cell';tdNt.appendChild(textInput(tool.note,function(v){tool.note=v;}));tr.appendChild(tdNt);tbody.appendChild(tr);
   });
-  tbl.appendChild(tbody); c.appendChild(tbl);
+  tbl.appendChild(tbody);c.appendChild(tbl);
 }
 
-// ── PANELS ────────────────────────────────────────────
 function renderPanelTable(){
-  var tbody=document.querySelector('#panelTable tbody'); tbody.innerHTML='';
+  var tbody=document.querySelector('#panelTable tbody');tbody.innerHTML='';
   data.panels.forEach(function(item){
     var tr=document.createElement('tr');
     var tdN=document.createElement('td');tdN.className='name-cell';tdN.textContent=item.name;tr.appendChild(tdN);
@@ -589,15 +495,12 @@ function renderPanelTable(){
     var inp=numInput(item.qty,function(v,ov){item.qty=v;cloudSave('panels',data.panels,'薄板 '+item.name,ov);});
     if(parseFloat(item.qty)===0) inp.style.color='var(--red)';
     tdQ.appendChild(inp);tr.appendChild(tdQ);
-    var tdNt=document.createElement('td');tdNt.className='note-cell';
-    tdNt.appendChild(textInput(item.note,function(v){item.note=v;}));
-    tr.appendChild(tdNt); tbody.appendChild(tr);
+    var tdNt=document.createElement('td');tdNt.className='note-cell';tdNt.appendChild(textInput(item.note,function(v){item.note=v;}));tr.appendChild(tdNt);tbody.appendChild(tr);
   });
 }
 
-// ── CATALOGS ──────────────────────────────────────────
 function renderCatalogTable(){
-  var tbody=document.querySelector('#catalogTable tbody'); tbody.innerHTML='';
+  var tbody=document.querySelector('#catalogTable tbody');tbody.innerHTML='';
   data.catalogs.forEach(function(item){
     var tr=document.createElement('tr');
     var tdN=document.createElement('td');tdN.className='name-cell';tdN.textContent=item.name;tr.appendChild(tdN);
@@ -605,12 +508,10 @@ function renderCatalogTable(){
     var inp=numInput(item.qty,function(v,ov){item.qty=v;cloudSave('catalogs',data.catalogs,'型錄 '+item.name,ov);});
     if(parseFloat(item.qty)===0) inp.style.color='var(--red)';
     tdQ.appendChild(inp);tr.appendChild(tdQ);
-    var tdNt=document.createElement('td');tdNt.textContent=item.note;tr.appendChild(tdNt);
-    tbody.appendChild(tr);
+    var tdNt=document.createElement('td');tdNt.textContent=item.note;tr.appendChild(tdNt);tbody.appendChild(tr);
   });
 }
 
-// ── LOGS ──────────────────────────────────────────────
 function loadLogs(){
   var tbody=document.querySelector('#logTable tbody');
   tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-muted)">載入中…</td></tr>';
@@ -621,27 +522,18 @@ function loadLogs(){
     if(!resp||!resp.ok){tbody.innerHTML='<tr><td colspan="5" style="color:var(--red);padding:16px">載入失敗</td></tr>';return;}
     tbody.innerHTML='';
     if(!resp.logs||!resp.logs.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;padding:16px;color:var(--text-muted)">尚無紀錄</td></tr>';return;}
-    resp.logs.forEach(function(log){
-      var tr=document.createElement('tr');
-      tr.innerHTML='<td class="log-time">'+log.time+'</td><td class="log-editor">'+(log.editor||'匿名')+'</td><td class="log-field">'+log.field+'</td><td class="log-old">'+log.oldVal+'</td><td class="log-new">'+log.newVal+'</td>';
-      tbody.appendChild(tr);
-    });
+    resp.logs.forEach(function(log){var tr=document.createElement('tr');tr.innerHTML='<td class="log-time">'+log.time+'</td><td class="log-editor">'+(log.editor||'匿名')+'</td><td class="log-field">'+log.field+'</td><td class="log-old">'+log.oldVal+'</td><td class="log-new">'+log.newVal+'</td>';tbody.appendChild(tr);});
   };
-  var s=document.createElement('script');
-  s.src=API_URL+'?action=getLogs&callback='+cbName+'&t='+Date.now();
-  document.head.appendChild(s);
+  var s=document.createElement('script');s.src=API_URL+'?action=getLogs&callback='+cbName+'&t='+Date.now();document.head.appendChild(s);
 }
 
-// ── EXPORT CSV ────────────────────────────────────────
 function exportCSV(){
   var csv='名稱,大倉,小倉,需叫貨數,備註\n';
   data.orderItems.forEach(function(i){csv+=i.name+','+i.big+','+i.small+','+i.order+','+i.note+'\n';});
   var blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='安桁庫存_'+new Date().toLocaleDateString('zh-TW')+'.csv'; a.click();
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='安桁庫存_'+new Date().toLocaleDateString('zh-TW')+'.csv';a.click();
 }
 
-// ── RENDER ALL ────────────────────────────────────────
 function renderAll(){
   renderAllProductsTable();
   renderPigmentSection('bigPigmentTables',data.bigPigments);
@@ -650,11 +542,9 @@ function renderAll(){
   renderToolsTable('bigToolSI',data.bigToolsSI,'bigToolsSI');
   renderToolsTable('smallToolGG',data.smallToolsGG,'smallToolsGG');
   renderToolsTable('smallToolSI',data.smallToolsSI,'smallToolsSI');
-  renderPanelTable(); renderCatalogTable();
-  renderOverview(); renderLowStock();
+  renderPanelTable();renderCatalogTable();renderOverview();renderLowStock();
 }
 
-// ── NAV ───────────────────────────────────────────────
 function showSection(id){
   document.querySelectorAll('.section').forEach(function(s){s.classList.remove('active');});
   document.querySelectorAll('nav button').forEach(function(b){b.classList.remove('active');});
@@ -663,46 +553,28 @@ function showSection(id){
   if(id==='logs') loadLogs();
 }
 
-// ── INIT ──────────────────────────────────────────────
 function init(){
   var saved=localStorage.getItem('anHeng_editor');
   if(saved) document.getElementById('editorName').value=saved;
   document.getElementById('editorName').addEventListener('change',function(e){localStorage.setItem('anHeng_editor',e.target.value);});
-
   var now=new Date();
-  var ds=now.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-  document.getElementById('footerDate').textContent=ds;
-
-  // 先用快取或預設資料馬上渲染
+  document.getElementById('footerDate').textContent=now.toLocaleString('zh-TW',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
   var cached=localStorage.getItem(LS_KEY);
   if(cached){try{data=JSON.parse(cached);}catch(e){data=JSON.parse(JSON.stringify(defaultData));}}
   if(!data.pigIgnore) data.pigIgnore={};
   renderAll();
-
-  // 再從雲端拉最新
   cloudGet().then(function(cd){
-    if(cd&&Object.keys(cd).length>0){
-      var changed=mergeCloud(cd);
-      if(!data.pigIgnore) data.pigIgnore={};
-      if(changed){saveLocal();renderAll();}
-    } else if(!cached){
-      data.pigIgnore={};
-      saveLocal(); cloudSaveAll();
-    }
+    if(cd&&Object.keys(cd).length>0){var changed=mergeCloud(cd);if(!data.pigIgnore) data.pigIgnore={};if(changed){saveLocal();renderAll();}}
+    else if(!cached){data.pigIgnore={};saveLocal();cloudSaveAll();}
   });
-
   setInterval(pollCloud,POLL_MS);
-
-  // 事件綁定
-  document.querySelectorAll('nav button[data-section]').forEach(function(btn){
-    btn.addEventListener('click',function(){showSection(btn.dataset.section);});
-  });
+  document.querySelectorAll('nav button[data-section]').forEach(function(btn){btn.addEventListener('click',function(){showSection(btn.dataset.section);});});
   document.getElementById('printBtn').addEventListener('click',function(){window.print();});
   document.getElementById('exportBtn').addEventListener('click',exportCSV);
   document.getElementById('logsRefreshBtn').addEventListener('click',loadLogs);
 }
 
-// ── Firebase Google 登入 ───────────────────────────────
+// ── Firebase Google 登入 ──────────────────────────────
 var firebaseConfig = {
   apiKey: "AIzaSyBuSPRCEibMTdLb0jurncrbW2zFrZG47VE",
   authDomain: "enheng-stock.firebaseapp.com",
@@ -712,31 +584,28 @@ var firebaseConfig = {
   appId: "1:510786281102:web:bddf4acb829d1e74f133df"
 };
 
-// 允許登入的 Email 名單（在這裡新增員工帳號）
 var ALLOWED_EMAILS = [
   'asdesmoxup@gmail.com',
   'youching99@gmail.com',
   'johnny.ting@enhan.com',
   'johnny.ting@enhan.com.tw',
   'mat@enhan.com.tw',
+  'cow9630cow@gmail.com',
 ];
-// 不分大小寫、忽略 gmail 的點（Google 把 you.ching99 和 youching99 視為同一帳號）
+
 function emailMatch(allowed, actual) {
   var a = actual.toLowerCase();
   return allowed.some(function(e) {
     var e2 = e.toLowerCase();
     if (a === e2) return true;
-    // Gmail 忽略點
     if (a.endsWith('@gmail.com') && e2.endsWith('@gmail.com')) {
       return a.split('@')[0].replace(/\./g,'') === e2.split('@')[0].replace(/\./g,'');
     }
     return false;
   });
 }
-// 若名單為空，允許所有人登入（之後可以加限制）
 
 function initFirebaseAuth() {
-  // 動態載入 Firebase SDK
   var s1 = document.createElement('script');
   s1.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
   s1.onload = function() {
@@ -745,8 +614,8 @@ function initFirebaseAuth() {
     s2.onload = function() {
       firebase.initializeApp(firebaseConfig);
       var auth = firebase.auth();
-
       var _entered = false;
+
       function enterSystem(user) {
         if (_entered) return;
         if (!user) { document.getElementById('loginLoading').textContent = ''; return; }
@@ -763,12 +632,10 @@ function initFirebaseAuth() {
         init();
       }
 
-      // 檢查目前登入狀態（包含 redirect 後）
       auth.onAuthStateChanged(function(user) {
         if (!_entered) enterSystem(user);
       });
 
-      // 登入按鈕 — 全部用 popup
       document.getElementById('googleLoginBtn').addEventListener('click', function() {
         document.getElementById('loginErr').textContent = '';
         document.getElementById('loginLoading').textContent = '登入中…';
@@ -778,7 +645,6 @@ function initFirebaseAuth() {
           .then(function(result) { enterSystem(result.user); })
           .catch(function(err) {
             if (err.code === 'auth/popup-blocked' || err.code === 'auth/cancelled-popup-request') {
-              // Popup 被擋，改用 redirect
               document.getElementById('loginLoading').textContent = '跳轉中…';
               auth.signInWithRedirect(provider);
             } else {
@@ -788,7 +654,6 @@ function initFirebaseAuth() {
           });
       });
 
-      // 處理 redirect 回來的結果
       auth.getRedirectResult().then(function(result) {
         if (result && result.user) enterSystem(result.user);
       }).catch(function(){});
