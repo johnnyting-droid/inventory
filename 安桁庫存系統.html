@@ -618,7 +618,10 @@ function initFirebaseAuth() {
 
       function enterSystem(user) {
         if (_entered) return;
-        if (!user) { document.getElementById('loginLoading').textContent = ''; return; }
+        if (!user) {
+          document.getElementById('loginLoading').textContent = '';
+          return;
+        }
         if (ALLOWED_EMAILS.length > 0 && !emailMatch(ALLOWED_EMAILS, user.email)) {
           document.getElementById('loginErr').textContent = '此帳號沒有存取權限：' + user.email;
           document.getElementById('loginLoading').textContent = '';
@@ -632,21 +635,32 @@ function initFirebaseAuth() {
         init();
       }
 
-      auth.onAuthStateChanged(function(user) {
-        if (!_entered) enterSystem(user);
+      // 先處理 redirect 結果，再監聽 auth 狀態
+      document.getElementById('loginLoading').textContent = '驗證中…';
+      auth.getRedirectResult().then(function(result) {
+        if (result && result.user) {
+          enterSystem(result.user);
+        } else {
+          // 沒有 redirect 結果，改由 onAuthStateChanged 處理
+          auth.onAuthStateChanged(function(user) {
+            if (!_entered) enterSystem(user);
+          });
+        }
+      }).catch(function(err) {
+        document.getElementById('loginErr').textContent = '登入失敗：' + (err.message || err.code);
+        document.getElementById('loginLoading').textContent = '';
+        auth.onAuthStateChanged(function(user) {
+          if (!_entered) enterSystem(user);
+        });
       });
 
       document.getElementById('googleLoginBtn').addEventListener('click', function() {
         document.getElementById('loginErr').textContent = '';
-        document.getElementById('loginLoading').textContent = '登入中…';
+        document.getElementById('loginLoading').textContent = '跳轉中…';
         var provider = new firebase.auth.GoogleAuthProvider();
         provider.setCustomParameters({ prompt: 'select_account' });
         auth.signInWithRedirect(provider);
       });
-
-      auth.getRedirectResult().then(function(result) {
-        if (result && result.user) enterSystem(result.user);
-      }).catch(function(){});
     };
     document.head.appendChild(s2);
   };
